@@ -5,7 +5,7 @@
 [![Live Demo](https://img.shields.io/badge/demo-live-success)](https://nsr2323.github.io/youtube-summarizer-app/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-[繁體中文](README_zh-TW.md) | English
+English | [Traditional Chinese](README_zh-TW.md)
 
 ## ✨ Features
 
@@ -22,7 +22,7 @@
 
 1. Visit **[https://nsr2323.github.io/youtube-summarizer-app/](https://nsr2323.github.io/youtube-summarizer-app/)**
 2. Paste any YouTube video URL
-3. Click "🚀 生成摘要" (Generate Summary)
+3. Click "🚀 Generate Summary"
 4. Wait for AI to analyze and generate the summary
 
 ### Install as PWA (Mobile)
@@ -145,7 +145,7 @@
       "content": {
         "parts": [
           {
-            "text": "影片摘要內容..."
+            "text": "Generated summary text..."
           }
         ]
       }
