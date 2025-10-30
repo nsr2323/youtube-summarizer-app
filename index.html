@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./assets/icon-192.png" />
-  <title>YouTube Summarizer PWA</title>
+  <title>YouTube 摘要 PWA</title>
   <style>
     body { 
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Arial, sans-serif; 
@@ -161,11 +161,11 @@
       // 顯示載入狀態
       runBtn.disabled = true;
       out.className = 'result loading';
-      out.innerHTML = '<div class="spinner"></div>Analyzing video and generating summary...';
+      out.innerHTML = '<div class="spinner"></div>正在分析影片並生成摘要...';
 
       try {
         const data = await summarizeVideo(url);
-        const summary = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('\n') || 'Unable to generate summary';
+        const summary = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('\n') || '無法生成摘要';
         
         out.className = 'result success';
         out.textContent = summary;
@@ -204,20 +204,20 @@
 </head>
 <body>
   <div class="container">
-    <h1>📺 YouTube Video Summarizer</h1>
-    <p class="hint">Paste a YouTube video URL. AI will fetch subtitles and generate a summary.</p>
+    <h1>📺 YouTube 影片摘要</h1>
+    <p class="hint">貼上 YouTube 影片網址，AI 將自動提取字幕並生成摘要</p>
 
     <input id="url" placeholder="https://www.youtube.com/watch?v=..." />
-    <button id="run">🚀 Generate Summary</button>
+    <button id="run">🚀 生成摘要</button>
 
     <div class="result-container">
-      <h3>Summary</h3>
-      <div id="out" class="result">Waiting for input...</div>
+      <h3>摘要結果</h3>
+      <div id="out" class="result">等待輸入...</div>
     </div>
   </div>
   
   <div class="footer">
-    Powered by <a href="https://github.com/nsr2323/youtube-summarizer-app" target="_blank">YouTube Summarizer</a>
+    由 <a href="https://github.com/nsr2323/youtube-summarizer-app" target="_blank">YouTube Summarizer</a> 提供
   </div>
 </body>
 </html>

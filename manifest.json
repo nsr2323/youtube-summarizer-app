@@ -1,6 +1,6 @@
 {
-  "name": "YouTube Summarizer",
-  "short_name": "YT Summary",
+  "name": "YouTube 摘要 PWA",
+  "short_name": "YT 摘要",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
