@@ -1,195 +1,190 @@
-# YouTube Video Summarizer
+# 📺 YouTube Video Summarizer
 
-An automated YouTube video summarization tool using Google AI Studio API (Gemini).
+> AI-powered YouTube video summarization tool with Progressive Web App support
 
-## Features
+[![Live Demo](https://img.shields.io/badge/demo-live-success)](https://nsr2323.github.io/youtube-summarizer-app/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-### With Subtitle Version (`youtube_summarizer_google_with_subtitle.py`)
-- ✅ Automatic YouTube video transcript extraction
-- ✅ Multi-language subtitle support (prioritizes Traditional Chinese, Chinese, English)
-- ✅ Intelligent chunking for long videos
-- ✅ High-quality summaries using Google Gemini 2.0 Flash model
-- ✅ Automatic retry mechanism for stability
+[繁體中文](README_zh-TW.md) | English
 
-### No Subtitle Version (`youtube_summarizer_google_no_subtitle.py`)
-- ✅ Generate summaries without requiring subtitles
-- ✅ Analysis based on video title, description, and metadata
-- ✅ Prioritizes subtitle content if available
-- ✅ Perfect for videos without subtitles
+## ✨ Features
 
-## Installation
+- 🚀 **Instant Summaries**: Generate comprehensive video summaries in seconds
+- 🎯 **Smart Subtitle Extraction**: Automatically fetches video subtitles in multiple languages
+- 📱 **Progressive Web App**: Install on your mobile device for offline access
+- 🔒 **Secure & Private**: API keys stored securely on Cloudflare Workers
+- 🌍 **No Backend Required**: Serverless architecture powered by Cloudflare Workers
+- 🎨 **Modern UI**: Beautiful, responsive design optimized for all devices
 
-### 1. Install Python
-Ensure Python 3.7 or higher is installed:
-- Download: https://www.python.org/downloads/
-- Check "Add Python to PATH" during installation
+## 🎯 Quick Start
 
-### 2. Install Dependencies
-```bash
-pip install -r requirements.txt
+### For Users
+
+1. Visit **[https://nsr2323.github.io/youtube-summarizer-app/](https://nsr2323.github.io/youtube-summarizer-app/)**
+2. Paste any YouTube video URL
+3. Click "🚀 生成摘要" (Generate Summary)
+4. Wait for AI to analyze and generate the summary
+
+### Install as PWA (Mobile)
+
+1. Open the app in your mobile browser
+2. Tap the browser menu
+3. Select "Add to Home Screen"
+4. Enjoy native app-like experience!
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐         ┌──────────────────────┐         ┌─────────────────┐
+│                 │         │                      │         │                 │
+│  GitHub Pages   │────────▶│  Cloudflare Worker   │────────▶│  Google Gemini  │
+│   (Frontend)    │         │   (API Proxy)        │         │      API        │
+│                 │         │                      │         │                 │
+└─────────────────┘         └──────────────────────┘         └─────────────────┘
+                                       │
+                                       ▼
+                            ┌──────────────────────┐
+                            │                      │
+                            │  YouTube oEmbed API  │
+                            │  YouTube Timedtext   │
+                            │                      │
+                            └──────────────────────┘
 ```
 
-Or install manually:
-```bash
-pip install google-generativeai youtube-transcript-api requests
+**Tech Stack:**
+- **Frontend**: Vanilla JavaScript, HTML5, CSS3
+- **Backend**: Cloudflare Workers (Serverless)
+- **AI**: Google Gemini 2.0 Flash API
+- **Hosting**: GitHub Pages + Cloudflare Workers
+
+## 🛠️ For Developers
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Cloudflare account
+- Google AI Studio API key
+
+### Setup Instructions
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/nsr2323/youtube-summarizer-app.git
+   cd youtube-summarizer-app
+   ```
+
+2. **Install Wrangler CLI**
+   ```bash
+   npm install -g wrangler
+   wrangler login
+   ```
+
+3. **Configure API Key**
+   ```bash
+   cd gemini-proxy
+   wrangler secret put GEMINI_API_KEY
+   # Paste your Google AI Studio API key when prompted
+   ```
+
+4. **Deploy Worker**
+   ```bash
+   wrangler deploy
+   ```
+
+5. **Update Frontend**
+   
+   Edit `index.html` line 131 to use your Worker URL:
+   ```javascript
+   const WORKER_URL = 'https://your-worker.workers.dev';
+   ```
+
+6. **Deploy to GitHub Pages**
+   ```bash
+   git add .
+   git commit -m "Deploy application"
+   git push origin main
+   ```
+   
+   Enable GitHub Pages in repository settings (Source: main branch, root folder)
+
+### Local Development
+
+1. **Test Worker locally**
+   ```bash
+   cd gemini-proxy
+   wrangler dev
+   ```
+
+2. **Test Frontend**
+   
+   Use any local server (e.g., Python):
+   ```bash
+   python -m http.server 8000
+   ```
+   
+   Open `http://localhost:8000` in your browser
+
+## 📖 API Documentation
+
+### Worker Endpoint
+
+**POST** `https://your-worker.workers.dev`
+
+**Request Body:**
+```json
+{
+  "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID"
+}
 ```
 
-### 3. Get Google AI Studio API Key
-1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key" to generate a new API key
-4. Copy the generated API key
-
-### 4. Configure API Key
-Choose one of the following methods:
-
-#### Method 1: Using .env file (Recommended)
-1. Copy `env.example` to `.env`
-2. Edit `.env` file and replace `your_google_api_key_here` with your actual API key:
-```
-GOOGLE_API_KEY=your_actual_api_key
-```
-
-#### Method 2: Set system environment variable
-**Windows:**
-```cmd
-setx GOOGLE_API_KEY "your_actual_api_key"
+**Response:**
+```json
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "影片摘要內容..."
+          }
+        ]
+      }
+    }
+  ]
+}
 ```
 
-**macOS/Linux:**
-```bash
-export GOOGLE_API_KEY="your_actual_api_key"
-```
+## 🔐 Security
 
-## Usage
+- ✅ API keys stored as Cloudflare Worker secrets
+- ✅ CORS properly configured
+- ✅ No sensitive data in frontend code
+- ✅ HTTPS enforced for all connections
 
-### Command Line
+## 🤝 Contributing
 
-#### With Subtitle Version
-```bash
-python youtube_summarizer_google_with_subtitle.py "https://www.youtube.com/watch?v=VIDEO_ID"
-```
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-#### No Subtitle Version
-```bash
-python youtube_summarizer_google_no_subtitle.py "https://www.youtube.com/watch?v=VIDEO_ID"
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-#### How to convert commands into a .bat file
-- Method 1: Save as a new file
-  1. Open Notepad
-  2. Paste the batch content (see templates in this repo)
-  3. Save As:
-     - File name: e.g., `summarize_google_with_subtitle.bat`
-     - Save as type: "All Files (*.*)"
-     - Encoding: Prefer "ANSI" or "UTF-8 without BOM". Using UTF-8 with BOM may introduce strange characters in the first line.
-- Method 2: Copy from a template
-  - Copy an existing `.bat`, rename it, and edit as needed
-- Encoding and code page notes
-  - We use `chcp 65001 >nul` at the top for proper UTF-8 output
-  - If you see garbled text, re-save as ANSI or UTF-8 without BOM
-- Common issues
-  - Double-click does nothing: ensure the extension is `.bat` (not `.txt`)
-  - Python not found: install Python and add it to PATH
-  - API key not loaded: ensure `.env` sits next to the `.bat` and contains `GOOGLE_API_KEY=your_key`
-- Security note
-  - Do not hardcode your API key in `.bat`. Use `.env` or system environment variables
+## 📝 License
 
-Minimal wrapper example:
-```bat
-@echo off
-chcp 65001 >nul
-cd /d "%~dp0"
-if not defined GOOGLE_API_KEY (
-  if exist .env (
-    for /f "usebackq tokens=1,2 delims==" %%a in (.env) do (
-      if "%%a"=="GOOGLE_API_KEY" set GOOGLE_API_KEY=%%b
-    )
-  )
-)
-if not defined GOOGLE_API_KEY (
-  echo GOOGLE_API_KEY is not set. Create .env or set a system env var.
-  pause & exit /b 1
-)
-set "VIDEO_URL=%~1"
-if "%VIDEO_URL%"=="" (
-  set /p VIDEO_URL=Enter YouTube URL:
-)
-python youtube_summarizer_google_with_subtitle.py "%VIDEO_URL%"
-pause
-```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Batch File Usage (Windows)
+## 🙏 Acknowledgments
 
-#### With Subtitle Version
-1. Double-click `summarize_google_with_subtitle.bat`
-2. Enter YouTube video URL
-3. Wait for processing to complete
+- [Google Gemini API](https://ai.google.dev/) for powerful AI capabilities
+- [Cloudflare Workers](https://workers.cloudflare.com/) for serverless infrastructure
+- [GitHub Pages](https://pages.github.com/) for free hosting
 
-#### No Subtitle Version
-1. Double-click `summarize_google_no_subtitle.bat`
-2. Enter YouTube video URL
-3. Wait for processing to complete
+## 📧 Contact
 
-### Parameters
-- `--language`: Specify subtitle language preference (default: zh-TW)
-- Supported URL formats:
-  - `https://www.youtube.com/watch?v=VIDEO_ID`
-  - `https://youtu.be/VIDEO_ID`
-  - `VIDEO_ID` (direct video ID input)
+Project Link: [https://github.com/nsr2323/youtube-summarizer-app](https://github.com/nsr2323/youtube-summarizer-app)
 
-## Output Files
+---
 
-Summaries are saved as text files with naming format:
-- With subtitle version: `Video_Title.txt`
-- No subtitle version: `Video_Title_no_subtitle.txt`
-
-Files contain:
-- Video metadata
-- Generation timestamp
-- AI model used
-- Detailed summary content
-
-## FAQ
-
-### Q: Getting "No available transcript found" error
-**A:** The video likely has no subtitles. Use the no-subtitle version:
-```bash
-python youtube_summarizer_google_no_subtitle.py "video_url"
-```
-
-### Q: Getting "Please set environment variable GOOGLE_API_KEY" error
-**A:** Follow the API key setup steps above. Ensure:
-1. `.env` file exists and is formatted correctly
-2. Or system environment variable is properly set
-3. API key is valid and not expired
-
-### Q: Processing fails or poor summary quality
-**A:** Possible causes:
-1. Network connection issues
-2. API key quota exceeded
-3. Video content too complex
-4. Try re-running or use a different video
-
-### Q: What subtitle languages are supported?
-**A:** Priority order: zh-TW (Traditional Chinese) > zh-CN (Simplified Chinese) > en (English) > others available
-
-## Technical Specifications
-
-- **Python Version**: 3.7+
-- **AI Model**: Google Gemini 2.0 Flash
-- **Max Processing Length**: 30,000 characters/chunk
-- **Supported Formats**: YouTube standard URL formats
-- **Output Format**: UTF-8 text files
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Issues and Pull Requests are welcome!
-
-## Changelog
-
-- v1.0.0: Initial release with both subtitle and no-subtitle modes
+Made with ❤️ by the community

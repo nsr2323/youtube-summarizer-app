@@ -1,195 +1,219 @@
-# YouTube 影片摘要生成器
+# 📺 YouTube 影片摘要器
 
-一個使用 Google AI Studio API (Gemini) 自動生成 YouTube 影片摘要的 Python 工具。
+> 使用 AI 技術自動生成 YouTube 影片摘要，支援漸進式網頁應用程式 (PWA)
 
-## 功能特色
+[![線上展示](https://img.shields.io/badge/展示-線上體驗-success)](https://nsr2323.github.io/youtube-summarizer-app/)
+[![授權](https://img.shields.io/badge/授權-MIT-blue.svg)](LICENSE)
 
-### 有字幕版本 (`youtube_summarizer_google_with_subtitle.py`)
-- ✅ 自動提取 YouTube 影片字幕
-- ✅ 支援多語言字幕（優先繁體中文、中文、英文）
-- ✅ 智能分塊處理長影片
-- ✅ 使用 Google Gemini 2.0 Flash 模型生成高品質摘要
-- ✅ 自動重試機制確保穩定性
+繁體中文 | [English](README.md)
 
-### 無字幕版本 (`youtube_summarizer_google_no_subtitle.py`)
-- ✅ 無需字幕即可生成摘要
-- ✅ 基於影片標題、描述和基本資訊進行分析
-- ✅ 如果影片有字幕，會優先使用字幕內容
-- ✅ 適合處理沒有字幕的影片
+## ✨ 特色功能
 
-## 安裝步驟
+- 🚀 **即時摘要生成**：幾秒鐘內生成完整的影片摘要
+- 🎯 **智慧字幕提取**：自動抓取多語言影片字幕
+- 📱 **漸進式網頁應用**：可安裝到手機，支援離線使用
+- 🔒 **安全私密**：API 金鑰安全存放在 Cloudflare Workers
+- 🌍 **無需後端主機**：使用 Cloudflare Workers 無伺服器架構
+- 🎨 **現代化介面**：美觀且響應式設計，適配所有裝置
 
-### 1. 安裝 Python
-確保您的系統已安裝 Python 3.7 或更高版本：
-- 下載：https://www.python.org/downloads/
-- 安裝時請勾選 "Add Python to PATH"
+## 🎯 快速開始
 
-### 2. 安裝依賴套件
-```bash
-pip install -r requirements.txt
+### 給一般使用者
+
+1. 造訪 **[https://nsr2323.github.io/youtube-summarizer-app/](https://nsr2323.github.io/youtube-summarizer-app/)**
+2. 貼上任何 YouTube 影片網址
+3. 點擊「🚀 生成摘要」按鈕
+4. 等待 AI 分析並生成摘要
+
+### 安裝為 PWA（手機版）
+
+1. 在手機瀏覽器中開啟應用程式
+2. 點擊瀏覽器選單
+3. 選擇「加到主畫面」
+4. 享受如同原生 App 的使用體驗！
+
+## 🏗️ 系統架構
+
+```
+┌─────────────────┐         ┌──────────────────────┐         ┌─────────────────┐
+│                 │         │                      │         │                 │
+│  GitHub Pages   │────────▶│  Cloudflare Worker   │────────▶│  Google Gemini  │
+│   (前端網頁)     │         │   (API 代理)         │         │      API        │
+│                 │         │                      │         │                 │
+└─────────────────┘         └──────────────────────┘         └─────────────────┘
+                                       │
+                                       ▼
+                            ┌──────────────────────┐
+                            │                      │
+                            │  YouTube oEmbed API  │
+                            │  YouTube Timedtext   │
+                            │                      │
+                            └──────────────────────┘
 ```
 
-或手動安裝：
-```bash
-pip install google-generativeai youtube-transcript-api requests
+**技術堆疊：**
+- **前端**：原生 JavaScript、HTML5、CSS3
+- **後端**：Cloudflare Workers（無伺服器）
+- **AI 引擎**：Google Gemini 2.0 Flash API
+- **託管服務**：GitHub Pages + Cloudflare Workers
+
+## 🛠️ 給開發者
+
+### 環境需求
+
+- Node.js 18+ 和 npm
+- Cloudflare 帳號
+- Google AI Studio API 金鑰
+
+### 安裝步驟
+
+1. **複製專案**
+   ```bash
+   git clone https://github.com/nsr2323/youtube-summarizer-app.git
+   cd youtube-summarizer-app
+   ```
+
+2. **安裝 Wrangler CLI**
+   ```bash
+   npm install -g wrangler
+   wrangler login
+   ```
+
+3. **設定 API 金鑰**
+   ```bash
+   cd gemini-proxy
+   wrangler secret put GEMINI_API_KEY
+   # 在提示時貼上你的 Google AI Studio API 金鑰
+   ```
+
+4. **部署 Worker**
+   ```bash
+   wrangler deploy
+   ```
+
+5. **更新前端設定**
+   
+   編輯 `index.html` 第 131 行，使用你的 Worker 網址：
+   ```javascript
+   const WORKER_URL = 'https://your-worker.workers.dev';
+   ```
+
+6. **部署到 GitHub Pages**
+   ```bash
+   git add .
+   git commit -m "部署應用程式"
+   git push origin main
+   ```
+   
+   在 GitHub 專案設定中啟用 GitHub Pages（來源：main 分支，根目錄）
+
+### 本地開發
+
+1. **測試 Worker**
+   ```bash
+   cd gemini-proxy
+   wrangler dev
+   ```
+
+2. **測試前端**
+   
+   使用任何本地伺服器（例如 Python）：
+   ```bash
+   python -m http.server 8000
+   ```
+   
+   在瀏覽器中開啟 `http://localhost:8000`
+
+## 📖 API 文件
+
+### Worker 端點
+
+**POST** `https://your-worker.workers.dev`
+
+**請求內容：**
+```json
+{
+  "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID"
+}
 ```
 
-### 3. 申請 Google AI Studio API Key
-1. 前往 [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. 登入您的 Google 帳號
-3. 點擊 "Create API Key" 建立新的 API Key
-4. 複製生成的 API Key
-
-### 4. 設定 API Key
-選擇以下方式之一設定 API Key：
-
-#### 方式一：使用 .env 檔案（推薦）
-1. 複製 `env.example` 為 `.env`
-2. 編輯 `.env` 檔案，將 `your_google_api_key_here` 替換為您的實際 API Key：
-```
-GOOGLE_API_KEY=您的實際API金鑰
-```
-
-#### 方式二：設定系統環境變數
-**Windows:**
-```cmd
-setx GOOGLE_API_KEY "您的實際API金鑰"
+**回應格式：**
+```json
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "影片摘要內容..."
+          }
+        ]
+      }
+    }
+  ]
+}
 ```
 
-**macOS/Linux:**
-```bash
-export GOOGLE_API_KEY="您的實際API金鑰"
-```
+## 🔐 安全性
 
-## 使用說明
+- ✅ API 金鑰以 Cloudflare Worker 機密儲存
+- ✅ 正確設定 CORS 跨域請求
+- ✅ 前端程式碼不含敏感資料
+- ✅ 所有連線強制使用 HTTPS
 
-### 命令列使用
+## 🎯 工作原理
 
-#### 有字幕版本
-```bash
-python youtube_summarizer_google_with_subtitle.py "https://www.youtube.com/watch?v=VIDEO_ID"
-```
+1. **使用者輸入**：在網頁中貼上 YouTube 影片網址
+2. **Worker 處理**：
+   - 從網址提取影片 ID
+   - 呼叫 YouTube oEmbed API 取得影片標題和頻道資訊
+   - 嘗試抓取繁中/簡中/英文字幕
+   - 若無字幕則使用影片基本資訊
+3. **AI 分析**：將影片資訊送至 Gemini API 生成摘要
+4. **回傳結果**：在網頁上顯示結構化的影片摘要
 
-#### 無字幕版本
-```bash
-python youtube_summarizer_google_no_subtitle.py "https://www.youtube.com/watch?v=VIDEO_ID"
-```
+## 🤝 貢獻
 
-#### 如何把命令轉成 .bat 批次檔
-- 方法一：另存新檔
-  1. 開啟記事本（Notepad）
-  2. 貼上批次內容（可參考本專案的 `.bat` 範本）
-  3. 另存新檔：
-     - 檔名：例如 `summarize_google_with_subtitle.bat`
-     - 儲存類型：選「所有檔案（*.*）」
-     - 編碼：建議「ANSI」或「UTF-8（無 BOM）」；若使用 UTF-8（有 BOM），可能在第一行出現奇怪字元導致錯誤
-- 方法二：複製範本
-  - 直接複製本專案中的 `.bat` 檔，重新命名後依需求修改內文
-- 編碼與字碼頁注意
-  - 本專案的 `.bat` 開頭有 `chcp 65001 >nul`，可在 UTF-8 環境下正確顯示中文
-  - 若執行時出現亂碼，請改用 ANSI 或 UTF-8 無 BOM 重新存檔
-- 常見問題
-  - 雙擊執行無反應：確認副檔名為 `.bat`，不是 `.txt`
-  - 找不到 Python：先安裝 Python 並勾選「Add Python to PATH」
-  - API Key 未載入：確認 `.env` 與 `.bat` 在同一資料夾，且 `.env` 內有 `GOOGLE_API_KEY=你的金鑰`
-- 安全提醒
-  - 不要把實際的 API Key 寫進 `.bat`；請放在 `.env` 或系統環境變數
+歡迎提交 Pull Request！
 
-最小可用範例：
-```bat
-@echo off
-chcp 65001 >nul
-cd /d "%~dp0"
-if not defined GOOGLE_API_KEY (
-  if exist .env (
-    for /f "usebackq tokens=1,2 delims==" %%a in (.env) do (
-      if "%%a"=="GOOGLE_API_KEY" set GOOGLE_API_KEY=%%b
-    )
-  )
-)
-if not defined GOOGLE_API_KEY (
-  echo 未設定 GOOGLE_API_KEY，請建立 .env 或設定系統環境變數
-  pause & exit /b 1
-)
-set "VIDEO_URL=%~1"
-if "%VIDEO_URL%"=="" (
-  set /p VIDEO_URL=請輸入 YouTube 影片網址:
-)
-python youtube_summarizer_google_with_subtitle.py "%VIDEO_URL%"
-pause
-```
+1. Fork 此專案
+2. 建立功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交變更 (`git commit -m '新增某個很棒的功能'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 開啟 Pull Request
 
-### 批次檔案使用（Windows）
+## 📝 授權
 
-#### 有字幕版本
-1. 雙擊 `summarize_google_with_subtitle.bat`
-2. 輸入 YouTube 影片網址
-3. 等待處理完成
+本專案採用 MIT 授權 - 詳見 [LICENSE](LICENSE) 檔案
 
-#### 無字幕版本
-1. 雙擊 `summarize_google_no_subtitle.bat`
-2. 輸入 YouTube 影片網址
-3. 等待處理完成
+## 🙏 致謝
 
-### 參數說明
-- `--language`: 指定字幕語言偏好（預設：zh-TW）
-- 支援的網址格式：
-  - `https://www.youtube.com/watch?v=VIDEO_ID`
-  - `https://youtu.be/VIDEO_ID`
-  - `VIDEO_ID`（直接輸入影片 ID）
+- [Google Gemini API](https://ai.google.dev/) 提供強大的 AI 能力
+- [Cloudflare Workers](https://workers.cloudflare.com/) 提供無伺服器基礎架構
+- [GitHub Pages](https://pages.github.com/) 提供免費託管服務
 
-## 輸出檔案
+## 💡 常見問題
 
-摘要會儲存為文字檔案，檔名格式：
-- 有字幕版：`影片標題.txt`
-- 無字幕版：`影片標題_無字幕版.txt`
+### Q: 為什麼有些影片無法生成摘要？
 
-檔案包含：
-- 影片基本資訊
-- 生成時間
-- 使用的 AI 模型
-- 詳細摘要內容
-
-## 常見問題
-
-### Q: 出現 "無法找到任何可用的字幕" 錯誤
-**A:** 這表示影片沒有字幕，請使用無字幕版本：
-```bash
-python youtube_summarizer_google_no_subtitle.py "影片網址"
-```
-
-### Q: 出現 "請設定環境變數 GOOGLE_API_KEY" 錯誤
-**A:** 請按照上述步驟設定 API Key，確保：
-1. `.env` 檔案存在且格式正確
-2. 或系統環境變數已正確設定
-3. API Key 有效且未過期
-
-### Q: 處理失敗或摘要品質不佳
-**A:** 可能的原因：
-1. 網路連線問題
-2. API Key 額度不足
-3. 影片內容過於複雜
-4. 嘗試重新執行或使用不同的影片
+A: 部分影片可能沒有字幕或影片資訊受限。系統會在無法取得字幕時使用影片基本資訊進行摘要。
 
 ### Q: 支援哪些語言的字幕？
-**A:** 優先順序：繁體中文 > 簡體中文 > 英文 > 其他可用語言
 
-## 技術規格
+A: 系統會依序嘗試抓取：繁體中文 → 簡體中文 → 英文字幕。
 
-- **Python 版本**: 3.7+
-- **AI 模型**: Google Gemini 2.0 Flash
-- **最大處理長度**: 30,000 字元/區塊
-- **支援格式**: YouTube 標準網址格式
-- **輸出格式**: UTF-8 文字檔案
+### Q: API 金鑰安全嗎？
 
-## 授權條款
+A: 是的。API 金鑰儲存在 Cloudflare Worker 的環境變數中，前端程式碼完全不會接觸到金鑰。
 
-本專案採用 MIT License，詳見 [LICENSE](LICENSE) 檔案。
+### Q: 可以離線使用嗎？
 
-## 貢獻
+A: 安裝為 PWA 後，應用程式介面可離線使用，但生成摘要仍需網路連線。
 
-歡迎提交 Issue 和 Pull Request！
+## 📧 聯絡方式
 
-## 更新日誌
+專案連結：[https://github.com/nsr2323/youtube-summarizer-app](https://github.com/nsr2323/youtube-summarizer-app)
 
-- v1.0.0: 初始版本，支援有字幕和無字幕兩種模式
+---
+
+用 ❤️ 打造
