@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./assets/icon-192.png" />
+  <title>YouTube 摘要 PWA</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Arial, sans-serif; margin: 16px; }
+    input, button, textarea { width: 100%; font-size: 16px; padding: 10px; margin: 8px 0; }
+    button { cursor: pointer; }
+    .hint { color: #666; font-size: 14px; }
+    .result { white-space: pre-wrap; border: 1px solid #ddd; padding: 12px; border-radius: 8px; }
+  </style>
+  <script>
+    // 先用環境變數樣式的占位，部署後請改為你的 Workers URL
+    const WORKER_URL = window.WORKER_URL || 'https://nsr2323.workers.dev';
+
+    async function callGemini(prompt) {
+      const payload = { contents: [{ parts: [{ text: prompt }] }] };
+      const resp = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) {
+        const t = await resp.text().catch(()=> '');
+        throw new Error('API 錯誤 ' + resp.status + ': ' + t);
+      }
+      return await resp.json();
+    }
+
+    async function onRun() {
+      const url = document.getElementById('url').value.trim();
+      const out = document.getElementById('out');
+      if (!url) { out.textContent = '請輸入 YouTube 網址'; return; }
+
+      out.textContent = '處理中...';
+      const prompt = `請以繁體中文為下列 YouTube 影片產生摘要：\n${url}\n` +
+        `若有可用資訊（標題/描述/字幕），請條列重點並給結論，200-500 字。`;
+      try {
+        const data = await callGemini(prompt);
+        const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('\n') || JSON.stringify(data, null, 2);
+        out.textContent = text;
+      } catch (e) {
+        out.textContent = '失敗：' + e.message;
+      }
+    }
+
+    window.addEventListener('load', () => {
+      const runBtn = document.getElementById('run');
+      runBtn.addEventListener('click', onRun);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+      }
+    });
+  </script>
+</head>
+<body>
+  <h1>YouTube 摘要</h1>
+  <p class="hint">貼上 YouTube 網址，點「生成摘要」。</p>
+
+  <input id="url" placeholder="https://www.youtube.com/watch?v=..." />
+  <button id="run">生成摘要</button>
+
+  <h3>結果</h3>
+  <div id="out" class="result"></div>
+</body>
+</html>
+
+

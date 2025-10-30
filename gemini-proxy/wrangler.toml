@@ -1,0 +1,7 @@
+name = "gemini-proxy"
+main = "src/index.js"
+compatibility_date = "2024-10-01"
+
+# 部署後請在 dash 或命令列設定秘密變數：GEMINI_API_KEY
+
+
