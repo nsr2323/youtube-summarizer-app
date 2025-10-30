@@ -7,50 +7,195 @@
   <link rel="icon" href="./assets/icon-192.png" />
   <title>YouTube 摘要 PWA</title>
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Arial, sans-serif; margin: 16px; }
-    input, button, textarea { width: 100%; font-size: 16px; padding: 10px; margin: 8px 0; }
-    button { cursor: pointer; }
-    .hint { color: #666; font-size: 14px; }
-    .result { white-space: pre-wrap; border: 1px solid #ddd; padding: 12px; border-radius: 8px; }
+    body { 
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Arial, sans-serif; 
+      margin: 0;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin: 0 0 8px 0;
+      font-size: 28px;
+    }
+    .hint { 
+      color: #666; 
+      font-size: 14px; 
+      margin-bottom: 20px;
+    }
+    input { 
+      width: 100%; 
+      font-size: 16px; 
+      padding: 12px; 
+      margin: 8px 0;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      box-sizing: border-box;
+      transition: border-color 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button { 
+      width: 100%;
+      font-size: 16px;
+      padding: 12px;
+      margin: 8px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.2s, opacity 0.3s;
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .result-container {
+      margin-top: 24px;
+    }
+    .result-container h3 {
+      color: #333;
+      margin: 0 0 12px 0;
+      font-size: 18px;
+    }
+    .result { 
+      white-space: pre-wrap; 
+      border: 2px solid #e0e0e0; 
+      padding: 16px; 
+      border-radius: 8px;
+      background: #f9f9f9;
+      min-height: 100px;
+      line-height: 1.6;
+      color: #333;
+    }
+    .result.loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #667eea;
+      font-weight: 500;
+    }
+    .result.error {
+      color: #d32f2f;
+      background: #ffebee;
+      border-color: #ef9a9a;
+    }
+    .result.success {
+      background: #f1f8ff;
+      border-color: #667eea;
+    }
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      margin-right: 12px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .footer {
+      margin-top: 24px;
+      text-align: center;
+      color: white;
+      font-size: 14px;
+    }
+    .footer a {
+      color: white;
+      text-decoration: underline;
+    }
   </style>
   <script>
-    // 先用環境變數樣式的占位，部署後請改為你的 Workers URL
-    const WORKER_URL = window.WORKER_URL || 'https://nsr2323.workers.dev';
+    const WORKER_URL = 'https://gemini-proxy.nsr2323.workers.dev';
 
-    async function callGemini(prompt) {
-      const payload = { contents: [{ parts: [{ text: prompt }] }] };
+    async function summarizeVideo(videoUrl) {
+      const payload = { videoUrl: videoUrl };
       const resp = await fetch(WORKER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      
+      const data = await resp.json();
+      
       if (!resp.ok) {
-        const t = await resp.text().catch(()=> '');
-        throw new Error('API 錯誤 ' + resp.status + ': ' + t);
+        throw new Error(data.error || `HTTP ${resp.status}`);
       }
-      return await resp.json();
+      
+      return data;
     }
 
     async function onRun() {
-      const url = document.getElementById('url').value.trim();
+      const urlInput = document.getElementById('url');
+      const runBtn = document.getElementById('run');
       const out = document.getElementById('out');
-      if (!url) { out.textContent = '請輸入 YouTube 網址'; return; }
-
-      out.textContent = '處理中...';
-      const prompt = `請以繁體中文為下列 YouTube 影片產生摘要：\n${url}\n` +
-        `若有可用資訊（標題/描述/字幕），請條列重點並給結論，200-500 字。`;
-      try {
-        const data = await callGemini(prompt);
-        const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('\n') || JSON.stringify(data, null, 2);
-        out.textContent = text;
-      } catch (e) {
-        out.textContent = '失敗：' + e.message;
+      
+      const url = urlInput.value.trim();
+      if (!url) { 
+        showError('請輸入 YouTube 網址');
+        return; 
       }
+
+      // 顯示載入狀態
+      runBtn.disabled = true;
+      out.className = 'result loading';
+      out.innerHTML = '<div class="spinner"></div>正在分析影片並生成摘要...';
+
+      try {
+        const data = await summarizeVideo(url);
+        const summary = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('\n') || '無法生成摘要';
+        
+        out.className = 'result success';
+        out.textContent = summary;
+      } catch (e) {
+        showError(e.message);
+      } finally {
+        runBtn.disabled = false;
+      }
+    }
+
+    function showError(message) {
+      const out = document.getElementById('out');
+      out.className = 'result error';
+      out.textContent = '❌ ' + message;
     }
 
     window.addEventListener('load', () => {
       const runBtn = document.getElementById('run');
+      const urlInput = document.getElementById('url');
+      
       runBtn.addEventListener('click', onRun);
+      
+      // 支援 Enter 鍵提交
+      urlInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !runBtn.disabled) {
+          onRun();
+        }
+      });
+      
+      // 註冊 Service Worker
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
       }
@@ -58,14 +203,22 @@
   </script>
 </head>
 <body>
-  <h1>YouTube 摘要</h1>
-  <p class="hint">貼上 YouTube 網址，點「生成摘要」。</p>
+  <div class="container">
+    <h1>📺 YouTube 影片摘要</h1>
+    <p class="hint">貼上 YouTube 影片網址，AI 將自動提取字幕並生成摘要</p>
 
-  <input id="url" placeholder="https://www.youtube.com/watch?v=..." />
-  <button id="run">生成摘要</button>
+    <input id="url" placeholder="https://www.youtube.com/watch?v=..." />
+    <button id="run">🚀 生成摘要</button>
 
-  <h3>結果</h3>
-  <div id="out" class="result"></div>
+    <div class="result-container">
+      <h3>摘要結果</h3>
+      <div id="out" class="result">等待輸入...</div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    由 <a href="https://github.com/nsr2323/youtube-summarizer-app" target="_blank">YouTube Summarizer</a> 提供
+  </div>
 </body>
 </html>
 
