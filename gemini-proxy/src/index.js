@@ -34,13 +34,13 @@ export default {
     const videoUrl = bodyJson.videoUrl || bodyJson.contents?.[0]?.parts?.[0]?.text || '';
     
     try {
-      // 從網址提取影片 ID
+      // Extract video ID from URL
       const videoId = extractVideoId(videoUrl);
       if (!videoId) {
-        return jsonResponse({ error: '無法從網址提取影片 ID，請確認是有效的 YouTube 網址' }, 400, allowOrigin);
+        return jsonResponse({ error: 'Unable to extract video ID. Please provide a valid YouTube URL.' }, 400, allowOrigin);
       }
 
-      // 獲取影片資訊
+      // Fetch basic video info
       const videoInfo = await getVideoInfo(videoId);
       
       // 嘗試獲取字幕
@@ -48,25 +48,25 @@ export default {
       try {
         transcript = await getTranscript(videoId);
       } catch (e) {
-        // 無字幕時使用影片基本資訊
-        transcript = `影片標題：${videoInfo.title}\n頻道：${videoInfo.author}\n描述：${videoInfo.description || '無描述'}`;
+        // Fallback to basic info when no transcript available
+        transcript = `Title: ${videoInfo.title}\nChannel: ${videoInfo.author}\nDescription: ${videoInfo.description || 'N/A'}`;
       }
 
-      // 構建 Gemini prompt
-      const prompt = `請以繁體中文為以下 YouTube 影片生成詳細摘要：
+      // Build Gemini prompt (English)
+      const prompt = `Please generate a clear, well-structured summary in English for the following YouTube video.
 
-影片資訊：
-標題：${videoInfo.title}
-頻道：${videoInfo.author}
+Video Info:
+Title: ${videoInfo.title}
+Channel: ${videoInfo.author}
 
-${transcript.length > 100 ? '影片內容：\n' + transcript : transcript}
+${transcript.length > 100 ? 'Transcript (may be partial):\n' + transcript : transcript}
 
-請提供：
-1. 影片主要內容概述
-2. 關鍵重點（3-5個）
-3. 結論或建議
+Provide:
+1) High-level overview of the video
+2) 3-5 key takeaways as bullet points
+3) A concluding insight or recommendation
 
-摘要長度：200-500字`;
+Target length: 200-500 words.`;
 
       // 調用 Gemini API
       const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + env.GEMINI_API_KEY;
@@ -84,7 +84,7 @@ ${transcript.length > 100 ? '影片內容：\n' + transcript : transcript}
       const text = await upstream.text();
       
       if (!upstream.ok) {
-        return jsonResponse({ error: 'Gemini API 錯誤', details: text }, upstream.status, allowOrigin);
+        return jsonResponse({ error: 'Gemini API error', details: text }, upstream.status, allowOrigin);
       }
 
       return new Response(text, {
@@ -96,12 +96,12 @@ ${transcript.length > 100 ? '影片內容：\n' + transcript : transcript}
       });
 
     } catch (error) {
-      return jsonResponse({ error: error.message || '處理失敗' }, 500, allowOrigin);
+      return jsonResponse({ error: error.message || 'Processing failed' }, 500, allowOrigin);
     }
   },
 };
 
-// 輔助函數：提取 YouTube 影片 ID
+// Helper: extract YouTube video ID
 function extractVideoId(url) {
   if (!url) return null;
   
@@ -123,34 +123,34 @@ function extractVideoId(url) {
   return null;
 }
 
-// 輔助函數：獲取影片資訊
+// Helper: fetch video info
 async function getVideoInfo(videoId) {
   try {
     const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
     const resp = await fetch(oembedUrl);
     
     if (!resp.ok) {
-      throw new Error('無法獲取影片資訊');
+      throw new Error('Unable to fetch video info');
     }
     
     const data = await resp.json();
     return {
-      title: data.title || `影片 ${videoId}`,
-      author: data.author_name || '未知頻道',
+      title: data.title || `Video ${videoId}`,
+      author: data.author_name || 'Unknown channel',
       description: ''
     };
   } catch (e) {
     return {
-      title: `影片 ${videoId}`,
-      author: '未知頻道',
+      title: `Video ${videoId}`,
+      author: 'Unknown channel',
       description: ''
     };
   }
 }
 
-// 輔助函數：獲取字幕
+// Helper: fetch transcript
 async function getTranscript(videoId) {
-  // 嘗試獲取自動生成的繁體中文字幕
+  // Try multiple languages (Traditional Chinese -> Simplified Chinese -> English)
   const langs = ['zh-Hant', 'zh-TW', 'zh', 'en'];
   
   for (const lang of langs) {
@@ -178,10 +178,10 @@ async function getTranscript(videoId) {
     }
   }
   
-  throw new Error('無法獲取字幕');
+  throw new Error('Unable to fetch transcript');
 }
 
-// 輔助函數：返回 JSON 回應
+// Helper: JSON response
 function jsonResponse(data, status, allowOrigin) {
   return new Response(JSON.stringify(data), {
     status: status,
