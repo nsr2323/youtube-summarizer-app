@@ -126,6 +126,188 @@
       color: white;
       text-decoration: underline;
     }
+    
+    /* 影片資訊卡片 */
+    .video-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+    }
+    .video-thumbnail {
+      flex-shrink: 0;
+      width: 200px;
+      height: 112px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: #e0e0e0;
+    }
+    .video-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .video-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin: 0 0 8px 0;
+      line-height: 1.4;
+    }
+    .video-author {
+      color: #666;
+      font-size: 14px;
+      margin: 4px 0;
+    }
+    .video-duration {
+      color: #999;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    
+    /* 結構化摘要樣式 */
+    .summary-content {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .summary-content h2 {
+      font-size: 20px;
+      margin: 24px 0 12px 0;
+      color: #333;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 8px;
+    }
+    .summary-content h2:first-child {
+      margin-top: 0;
+    }
+    .summary-content ul {
+      margin: 12px 0;
+      padding-left: 24px;
+    }
+    .summary-content li {
+      margin: 8px 0;
+      line-height: 1.6;
+    }
+    .summary-content p {
+      margin: 12px 0;
+      line-height: 1.8;
+    }
+    
+    /* 可展開/收合區塊 */
+    .expandable-section {
+      margin: 16px 0;
+    }
+    .expandable-header {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      transition: background 0.2s;
+      user-select: none;
+    }
+    .expandable-header:hover {
+      background: #eeeeee;
+    }
+    .expandable-header h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #333;
+    }
+    .expand-icon {
+      transition: transform 0.3s;
+      font-size: 18px;
+      color: #667eea;
+    }
+    .expand-icon.expanded {
+      transform: rotate(180deg);
+    }
+    .expandable-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+      padding: 0 12px;
+    }
+    .expandable-content.expanded {
+      max-height: 2000px;
+      padding: 12px;
+      transition: max-height 0.5s ease-in;
+    }
+    
+    /* 按鈕組 */
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 10px 16px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 2px solid #667eea;
+      background: white;
+      color: #667eea;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .action-btn:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-2px);
+    }
+    .action-btn.secondary {
+      border-color: #764ba2;
+      color: #764ba2;
+    }
+    .action-btn.secondary:hover {
+      background: #764ba2;
+      color: white;
+    }
+    
+    /* 響應式設計 */
+    @media (max-width: 600px) {
+      .video-card {
+        flex-direction: column;
+      }
+      .video-thumbnail {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16/9;
+      }
+      .action-buttons {
+        flex-direction: column;
+      }
+      .action-btn {
+        width: 100%;
+      }
+    }
+    
+    /* Markdown 樣式 */
+    .summary-content strong {
+      font-weight: 600;
+      color: #333;
+    }
+    .summary-content code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
   </style>
   <script>
     const WORKER_URL = 'https://gemini-proxy.nsr2323.workers.dev';
@@ -147,6 +329,201 @@
       return data;
     }
 
+    // 簡單的 Markdown 轉 HTML
+    function markdownToHtml(markdown) {
+      let html = markdown
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/^- (.*$)/gim, '<li>$1</li>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/^(?!<[h|u|l])(.+)$/gim, '<p>$1</p>');
+      
+      html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+      html = html.replace(/<p><\/p>/g, '');
+      
+      return html;
+    }
+
+    // 解析結構化摘要
+    function parseStructuredSummary(text) {
+      const sections = {};
+      const lines = text.split('\n');
+      let currentSection = '';
+      let currentContent = [];
+      
+      for (let line of lines) {
+        if (line.startsWith('## ')) {
+          if (currentSection) {
+            sections[currentSection] = currentContent.join('\n').trim();
+          }
+          currentSection = line.replace('## ', '').trim();
+          currentContent = [];
+        } else if (line.trim()) {
+          currentContent.push(line);
+        }
+      }
+      if (currentSection) {
+        sections[currentSection] = currentContent.join('\n').trim();
+      }
+      
+      return sections;
+    }
+
+    // 渲染摘要內容
+    function renderSummary(data) {
+      const summaryText = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('\n') || '';
+      const videoInfo = data?.videoInfo;
+      
+      let html = '';
+      
+      // 影片資訊卡片
+      if (videoInfo) {
+        html += `
+          <div class="video-card">
+            <img src="${videoInfo.thumbnail}" alt="${videoInfo.title}" class="video-thumbnail" onerror="this.src='https://img.youtube.com/vi/${videoInfo.videoId}/hqdefault.jpg'">
+            <div class="video-info">
+              <h3 class="video-title">${videoInfo.title}</h3>
+              <div class="video-author">📺 ${videoInfo.author}</div>
+              ${videoInfo.duration ? `<div class="video-duration">⏱️ ${videoInfo.duration}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }
+      
+      // 解析並渲染結構化摘要
+      const sections = parseStructuredSummary(summaryText);
+      
+      html += '<div class="summary-content">';
+      
+      // 概述（始終顯示）
+      if (sections['📋 概述']) {
+        html += `<div><h2>📋 概述</h2>${markdownToHtml(sections['📋 概述'])}</div>`;
+      }
+      
+      // 重點（始終顯示）
+      if (sections['⭐ 重點']) {
+        html += `<div><h2>⭐ 重點</h2>${markdownToHtml(sections['⭐ 重點'])}</div>`;
+      }
+      
+      // 詳細分析（可展開/收合）
+      if (sections['📖 詳細分析']) {
+        html += `
+          <div class="expandable-section">
+            <div class="expandable-header" onclick="toggleExpand('detail-analysis')">
+              <h3>📖 詳細分析</h3>
+              <span class="expand-icon" id="detail-analysis-icon">▼</span>
+            </div>
+            <div class="expandable-content" id="detail-analysis">
+              ${markdownToHtml(sections['📖 詳細分析'])}
+            </div>
+          </div>
+        `;
+      }
+      
+      // 關鍵時刻（可展開/收合）
+      if (sections['⏱️ 關鍵時刻']) {
+        html += `
+          <div class="expandable-section">
+            <div class="expandable-header" onclick="toggleExpand('key-moments')">
+              <h3>⏱️ 關鍵時刻</h3>
+              <span class="expand-icon" id="key-moments-icon">▼</span>
+            </div>
+            <div class="expandable-content" id="key-moments">
+              ${markdownToHtml(sections['⏱️ 關鍵時刻'])}
+            </div>
+          </div>
+        `;
+      }
+      
+      // 結論（始終顯示）
+      if (sections['💡 結論']) {
+        html += `<div><h2>💡 結論</h2>${markdownToHtml(sections['💡 結論'])}</div>`;
+      }
+      
+      // 如果沒有結構化內容，直接顯示原始文字
+      if (Object.keys(sections).length === 0) {
+        html += `<div>${markdownToHtml(summaryText)}</div>`;
+      }
+      
+      html += '</div>';
+      
+      // 操作按鈕
+      html += `
+        <div class="action-buttons">
+          <button class="action-btn" onclick="copySummary()">
+            📋 複製摘要
+          </button>
+          <button class="action-btn secondary" onclick="shareSummary('${videoInfo?.url || ''}')">
+            🔗 分享
+          </button>
+        </div>
+      `;
+      
+      return html;
+    }
+
+    // 切換展開/收合
+    window.toggleExpand = function(id) {
+      const content = document.getElementById(id);
+      const icon = document.getElementById(id + '-icon');
+      
+      if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        icon.classList.remove('expanded');
+      } else {
+        content.classList.add('expanded');
+        icon.classList.add('expanded');
+      }
+    };
+
+    // 複製摘要
+    window.copySummary = async function() {
+      const summaryText = document.querySelector('.summary-content')?.innerText || '';
+      const videoInfo = document.querySelector('.video-title')?.textContent || '';
+      
+      const fullText = videoInfo ? `${videoInfo}\n\n${summaryText}` : summaryText;
+      
+      try {
+        await navigator.clipboard.writeText(fullText);
+        alert('✅ 摘要已複製到剪貼簿！');
+      } catch (e) {
+        const textarea = document.createElement('textarea');
+        textarea.value = fullText;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('✅ 摘要已複製到剪貼簿！');
+      }
+    };
+
+    // 分享功能
+    window.shareSummary = async function(videoUrl) {
+      const summaryText = document.querySelector('.summary-content')?.innerText || '';
+      const videoInfo = document.querySelector('.video-title')?.textContent || '';
+      
+      const shareData = {
+        title: videoInfo || 'YouTube 影片摘要',
+        text: summaryText.substring(0, 200) + '...',
+        url: videoUrl || window.location.href
+      };
+      
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else {
+          await navigator.clipboard.writeText(videoUrl || window.location.href);
+          alert('✅ 連結已複製到剪貼簿！');
+        }
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          await navigator.clipboard.writeText(videoUrl || window.location.href);
+          alert('✅ 連結已複製到剪貼簿！');
+        }
+      }
+    };
+
     async function onRun() {
       const urlInput = document.getElementById('url');
       const runBtn = document.getElementById('run');
@@ -165,10 +542,9 @@
 
       try {
         const data = await summarizeVideo(url);
-        const summary = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('\n') || '無法生成摘要';
-        
         out.className = 'result success';
-        out.textContent = summary;
+        out.innerHTML = renderSummary(data);
+        window.currentSummaryData = data;
       } catch (e) {
         showError(e.message);
       } finally {

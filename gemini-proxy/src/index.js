@@ -52,8 +52,8 @@ export default {
         transcript = `影片標題：${videoInfo.title}\n頻道：${videoInfo.author}\n描述：${videoInfo.description || '無描述'}`;
       }
 
-      // 構建 Gemini 提示（繁體中文）
-      const prompt = `請以繁體中文為以下 YouTube 影片生成清晰且有條理的摘要。
+      // 構建 Gemini 提示（繁體中文，要求結構化輸出）
+      const prompt = `請以繁體中文為以下 YouTube 影片生成詳細且結構化的摘要。
 
 影片資訊：
 標題：${videoInfo.title}
@@ -61,12 +61,28 @@ export default {
 
 ${transcript.length > 100 ? '影片內容（可能為部分字幕）：\n' + transcript : transcript}
 
-請提供：
-1）影片高層次概述
-2）3-5 個重點（以條列式呈現）
-3）結論或建議
+請使用以下 Markdown 格式提供摘要：
 
-摘要長度：200-500 字。`;
+## 📋 概述
+（2-3 句影片整體內容概述）
+
+## ⭐ 重點
+- 重點一
+- 重點二
+- 重點三（至少 3-5 個重點）
+
+## 📖 詳細分析
+（深入分析影片的主要內容和觀點，200-400 字）
+
+## ⏱️ 關鍵時刻
+- [時間] 關鍵時刻描述
+- [時間] 關鍵時刻描述
+（如果有時間資訊，請標註；如果沒有，可以描述重要轉折點）
+
+## 💡 結論
+（總結和建議）
+
+請確保輸出完整的 Markdown 格式，包含所有區塊。摘要總長度：500-1000 字。`;
 
       // 調用 Gemini API
       const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + env.GEMINI_API_KEY;
@@ -87,7 +103,28 @@ ${transcript.length > 100 ? '影片內容（可能為部分字幕）：\n' + tra
         return jsonResponse({ error: 'Gemini API 錯誤', details: text }, upstream.status, allowOrigin);
       }
 
-      return new Response(text, {
+      // 解析 Gemini 回應並加入影片資訊
+      let geminiData;
+      try {
+        geminiData = JSON.parse(text);
+      } catch (e) {
+        geminiData = { candidates: [{ content: { parts: [{ text: text }] } }] };
+      }
+
+      // 將影片資訊加入回應
+      const response = {
+        ...geminiData,
+        videoInfo: {
+          videoId: videoId,
+          title: videoInfo.title,
+          author: videoInfo.author,
+          thumbnail: videoInfo.thumbnail,
+          duration: videoInfo.duration,
+          url: `https://www.youtube.com/watch?v=${videoId}`
+        }
+      };
+
+      return new Response(JSON.stringify(response), {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
@@ -134,15 +171,22 @@ async function getVideoInfo(videoId) {
     }
     
     const data = await resp.json();
+    // 構造高解析度縮圖 URL（maxresdefault，若不存在則使用 hqdefault）
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+    
     return {
       title: data.title || `影片 ${videoId}`,
       author: data.author_name || '未知頻道',
-      description: ''
+      thumbnail: thumbnailUrl,
+      duration: null, // YouTube oEmbed 不提供時長，需使用 Data API
+      description: data.description || ''
     };
-  } catch (e) {
+   } catch (e) {
     return {
       title: `影片 ${videoId}`,
       author: '未知頻道',
+      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      duration: null,
       description: ''
     };
   }
